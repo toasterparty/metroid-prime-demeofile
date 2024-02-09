@@ -5,8 +5,8 @@ import dolphin_memory_engine
 dolphin = dolphin_memory_engine
 
 def connect():
-    if not dolphin.is_hooked():
-        dolphin.hook()
+    dolphin.un_hook()
+    dolphin.hook()
 
     if not dolphin.is_hooked():
         raise Exception("Unable to connect to Dolphin")

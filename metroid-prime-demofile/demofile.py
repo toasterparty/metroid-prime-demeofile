@@ -1,4 +1,5 @@
 from math import sqrt
+import os
 import json
 
 INSTANCE_ID_RANGE_START = 9_000_000
@@ -233,11 +234,6 @@ class Demofile:
             self.last_save_rot = rot
 
         print(f"{time:.1f}: ({pos[0]:.1f}, {pos[1]:.1f}, {pos[2]:.1f}, {rot:.1f})")
-        # if delta_rot_deg:
-        #     print(f"    rot:  {delta_rot_deg:.1f} to reach {rot:.1f}")
-
-        # if delta_distance:
-        #     print(f"    dist: {delta_distance:.1f}")
 
         if self.object_count() > OBJECT_LIMIT:
             raise Exception("Object limit reached")
@@ -305,6 +301,10 @@ class Demofile:
                 "message": "PLAY",
             }
         )
+
+        directory = os.path.dirname(self.filepath)
+        if directory:
+            os.makedirs(directory, exist_ok=True)
 
         with open(self.filepath, 'w') as file:
             file.write(json.dumps(self.data))
