@@ -3,7 +3,6 @@ import os
 import json
 
 INSTANCE_ID_RANGE_START = 9_000_000
-OBJECT_LIMIT = 512
 
 def calculate_rotation(last, next):
     clockwise = (next - last) % 360
@@ -20,8 +19,10 @@ def distance_between_points(p1, p2):
     return sqrt((x2 - x1)**2 + (y2 - y1)**2 + (z2 - z1)**2)
 
 class Demofile:
-    def __init__(self, sample_rate, filepath="demofile.json"):
+    def __init__(self, sample_rate, filepath, world_name, room_name):
         self.filepath = filepath
+        self.world_name = world_name
+        self.room_name = room_name
         self.sample_rate = sample_rate
 
         self.last_save_time = None
@@ -235,10 +236,6 @@ class Demofile:
 
         print(f"{time:.1f}: ({pos[0]:.1f}, {pos[1]:.1f}, {pos[2]:.1f}, {rot:.1f})")
 
-        if self.object_count() > OBJECT_LIMIT:
-            raise Exception("Object limit reached")
-
-
     def commit(self, final_sample):
         self.process_sample(final_sample, force=True)
         assert len(self.data["waypoints"]) > 1
@@ -302,11 +299,62 @@ class Demofile:
             }
         )
 
+        data = {
+            "$schema": "https://randovania.github.io/randomprime/randomprime.schema.json",
+            "outputIso": "metroid-prime-demofile.iso",
+            "preferences": {
+                "qolGameBreaking": True,
+                "qolCosmetic": True,
+                "qolGeneral": True,
+                "qolCutscenes": "SkippableCompetitive",
+                "automaticCrashScreen": True,
+                "skipSplashScreens": True,
+                "quickplay": True,
+            },
+            "gameConfig": {
+                "startingRoom": f"{self.world_name}:{self.room_name}",
+                "startingItems": {
+                    "powerBeam": True,
+                    "ice": True,
+                    "wave": True,
+                    "plasma": True,
+                    "missiles": 999,
+                    "scanVisor": True,
+                    "bombs": True,
+                    "powerBombs": 9,
+                    "flamethrower": True,
+                    "thermalVisor": True,
+                    "charge": True,
+                    "superMissile": True,
+                    "grapple": True,
+                    "xray": True,
+                    "iceSpreader": True,
+                    "spaceJump": True,
+                    "morphBall": True,
+                    "combatVisor": True,
+                    "boostBall": True,
+                    "spiderBall": True,
+                    "variaSuit": True,
+                    "gravitySuit": False,
+                    "phazonSuit": False,
+                    "energyTanks": 14,
+                    "wavebuster": True
+                },
+            },
+            "levelData": {
+                self.world_name: {
+                    "rooms": {
+                        self.room_name: self.data,
+                    },
+                },
+            },
+        }
+
         directory = os.path.dirname(self.filepath)
         if directory:
             os.makedirs(directory, exist_ok=True)
 
         with open(self.filepath, 'w') as file:
-            file.write(json.dumps(self.data))
+            file.write(json.dumps(data))
 
         print(f"Saved recording to '{self.filepath}' (Used {self.object_count()} objects)")

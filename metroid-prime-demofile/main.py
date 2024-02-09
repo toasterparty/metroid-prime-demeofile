@@ -5,11 +5,13 @@ from datetime import datetime
 import tkinter as tk
 from tkinter import ttk, messagebox
 
-from recorder import connect, disconnect, take_sample
+from dolphin import connect, disconnect, get_room, take_sample
 from demofile import Demofile
+from rooms import *
 
 # Config #
 DEFAULT_SAMPLE_RATE = 10
+OBJECT_COUNT_OVERHEAD = 128
 
 class MetroidPrimeDemofileGUI:
     def __init__(self, root):
@@ -17,7 +19,7 @@ class MetroidPrimeDemofileGUI:
         self.sample_rate_hz = tk.IntVar(value=DEFAULT_SAMPLE_RATE)
         self.recording = False
         self.record_thread = None
-        self.object_count_var = tk.StringVar(value="Object Count: 0")
+        self.object_count_var = tk.StringVar(value="Objects Remaining")
         self.recording_done_var = tk.StringVar(value="")
 
         self.setup_ui()
@@ -46,7 +48,10 @@ class MetroidPrimeDemofileGUI:
             demofile = None
             sample = None
             connect()
-            demofile = Demofile(self.sample_rate_hz.get(), self.filename)
+            (mlvl_id, room_idx) = get_room()
+            (mrea_id, room_name, base_object_count) = MLVL_ID_ROOM_IDX_TO_ROOM_INFO[(mlvl_id, room_idx)]
+            world_name = MLVL_TO_WORLD_NAME[mlvl_id]
+            demofile = Demofile(self.sample_rate_hz.get(), self.filename, world_name, room_name)
 
             while self.recording:
                 start_time = time()
@@ -54,13 +59,20 @@ class MetroidPrimeDemofileGUI:
 
                 demofile.process_sample(sample)
 
-                self.object_count_var.set(f"Object Count: {demofile.object_count()}")
+                objects_remaining = 1024 - (base_object_count + demofile.object_count() + OBJECT_COUNT_OVERHEAD)
+                objects_remaining = max(0, objects_remaining)
+                self.object_count_var.set(f"Objects Remaining: {objects_remaining}")
+
+                if objects_remaining <= 0:
+                    raise Exception("Ran out of objects")
 
                 elapsed_time = time() - start_time
                 remaining_time = max(0, (1/self.sample_rate_hz.get()) - elapsed_time)
                 sleep(remaining_time)
         except Exception as e:
-            messagebox.showerror("Error", f"An error occurred during recording: {e}")
+            messagebox.showerror("Recording Aborted", f"{e}")
+            demofile = None
+            sample = None
         finally:
             disconnect()
             self.recording = False

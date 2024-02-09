@@ -55,6 +55,21 @@ def _read_rot():
     rot_deg %= 360
     return rot_deg
 
+def get_room():
+    if not is_connected():
+        raise Exception("Connection lost")
+
+    # world_ptr = &g_stateManager.world
+    world_addr = dolphin.read_word(0x8045A1A8 + 0x850)
+    
+    # world_ptr->mlvl
+    mlvl_id = dolphin.read_word(world_addr + 0x8)
+    
+    # world_ptr->area_idx
+    room_idx = dolphin.read_word(world_addr + 0x68)
+
+    return (mlvl_id, room_idx)
+
 def take_sample():
     if not is_connected():
         raise Exception("Connection lost")
