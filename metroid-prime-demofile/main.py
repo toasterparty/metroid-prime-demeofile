@@ -7,6 +7,7 @@ from recorder import connect, disconnect, take_sample
 SAMPLE_RATE_HZ = 20
 RECORD_DURATION_S = 10
 INSTANCE_ID_RANGE_START = 9_000_000
+OBJECT_LIMIT = 512
 
 def calculate_rotation(last, next):
     clockwise = (next - last) % 360
@@ -41,6 +42,9 @@ class Demofile:
         self.data["playerActors"] = list()
         self.data["timers"] = list()
         self.data["addConnections"] = list()
+
+    def object_count(self):
+        return self.next_instance_id - INSTANCE_ID_RANGE_START
 
     def _next_id(self):
         id = self.next_instance_id
@@ -303,6 +307,8 @@ class Demofile:
         with open(self.filepath, 'w') as file:
             file.write(json.dumps(self.data))
 
+        print(f"Saved recording to '{self.filepath}' (Used {self.object_count()} objects)")
+
 def record():
     # init
     demofile = Demofile("demofile.json")
@@ -315,6 +321,9 @@ def record():
             start_time = time()
             
             sample = take_sample()
+
+            if demofile.object_count() > OBJECT_LIMIT:
+                raise Exception("Object limit reached")
 
             if time() - t > RECORD_DURATION_S:
                 demofile.process_sample(sample, force=True)
